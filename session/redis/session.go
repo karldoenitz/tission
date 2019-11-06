@@ -104,6 +104,13 @@ func (s *Session) updateSession() {
 }
 
 func (s *Session) Get(key string, value interface{}) (err error) {
+	defer func() {
+		fatalError := recover()
+		if fatalError != nil {
+			err = errors.New(fmt.Sprintf("session值类型与返回值不匹配: error(%#v)", fatalError))
+			return
+		}
+	}()
 	sv, isExisted := s.value[key]
 	if !isExisted {
 		return errors.New(fmt.Sprintf("session value of key(%s) is nil", key))
