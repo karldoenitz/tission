@@ -66,6 +66,7 @@ func (sm *SessionManager) GenerateSession(expire int) TigoWeb.Session {
 	session.sessionId = getSessionId()
 	session.value = make(map[string]interface{})
 	sm.expire = int64(expire) * int64(time.Second)
+	session.expire = sm.expire
 	Set(session.sessionId, session.value, time.Duration(sm.expire))
 	return &session
 }
@@ -96,11 +97,16 @@ type Session struct {
 	expire    int64
 }
 
-func (s *Session) updateSession() {
-	data, _ := json.Marshal(s.value)
+func (s *Session) updateSession() (err error) {
+	data, err := json.Marshal(s.value)
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
 	if err, _ := Set(s.sessionId, data, time.Duration(s.expire)); err != nil {
 		fmt.Println(err.Error())
 	}
+	return
 }
 
 func (s *Session) Get(key string, value interface{}) (err error) {
@@ -146,8 +152,7 @@ func (s *Session) Get(key string, value interface{}) (err error) {
 
 func (s *Session) Set(key string, value interface{}) (err error) {
 	s.value[key] = value
-	s.updateSession()
-	return
+	return s.updateSession()
 }
 
 func (s *Session) Delete(key string) {
