@@ -12,7 +12,7 @@ func produceRedisPool(addr string, maxIdle, timeout int, auth string, dbNo inter
 		MaxIdle:     maxIdle,
 		IdleTimeout: time.Duration(timeout) * time.Second,
 		Dial: func() (redis.Conn, error) {
-			conn, err := redis.Dial("tcp", addr, redis.DialPassword(pwd))
+			conn, err := redis.Dial("tcp", addr, redis.DialPassword(pwd), redis.DialDatabase(dbNo.(int)))
 			if err != nil {
 				return nil, err
 			}
