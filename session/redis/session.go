@@ -30,6 +30,7 @@ type SessionInterface struct {
 	Pwd     string
 	Auth    string
 	DbNo    int
+	Expire  int64
 }
 
 func (sip *SessionInterface) initRedisPool() {
@@ -54,7 +55,7 @@ func (sip *SessionInterface) NewSessionManager() TigoWeb.SessionManager {
 	Auth = sip.Auth
 	DbNo = sip.DbNo
 	sip.initRedisPool()
-	return &SessionManager{}
+	return &SessionManager{expire: sip.Expire}
 }
 
 type SessionManager struct {
@@ -65,7 +66,9 @@ func (sm *SessionManager) GenerateSession(expire int) TigoWeb.Session {
 	session := Session{}
 	session.sessionId = getSessionId()
 	session.value = make(map[string]interface{})
-	sm.expire = int64(expire) * int64(time.Second)
+	if expire > 0 {
+		sm.expire = int64(expire) * int64(time.Second)
+	}
 	session.expire = sm.expire
 	Set(session.sessionId, session.value, time.Duration(sm.expire))
 	return &session

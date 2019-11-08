@@ -75,6 +75,7 @@ func main() {
 		Port:    "6379",       // redis端口
 		MaxIdle: 10,
 		Timeout: 100,
+		Expire:  3600,         // 3600s后session过期
 	}
 	application.StartSession(&t, "tid")
 	application.Run()
