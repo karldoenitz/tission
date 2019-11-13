@@ -1,3 +1,6 @@
+[![Badge](https://img.shields.io/badge/link-Tigo-blue.svg)](https://karldoenitz.github.io/Tigo/)
+[![LICENSE](https://img.shields.io/badge/license-tission-blue.svg)](https://github.com/karldoenitz/tission/blob/master/LICENSE)
+[![Build Status](https://travis-ci.org/karldoenitz/Tigo.svg?branch=master)](https://travis-ci.org/karldoenitz/Tigo)
 # tission
 
 一个基于redis实现的session处理插件，可内嵌入`Tigo`框架使用。
