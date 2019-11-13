@@ -8,4 +8,4 @@ go:
   - "1.11"
   - "1.12"
 
-install: go get github.com/karldoenitz/tission/tree/master/session/redis
+install: go get github.com/karldoenitz/tission/session/redis
