@@ -1,13 +1,11 @@
 language: go
 
-go:
-  - "1.11.x"
-  - "1.12.x"
-
 matrix:
   fast_finish: true
   include:
     - go: 1.11.x
+      env: GO111MODULE=on
+    - go: 1.12.x
       env: GO111MODULE=on
 
 install: go get github.com/karldoenitz/tission/session/redis
