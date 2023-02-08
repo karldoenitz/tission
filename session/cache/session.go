@@ -131,7 +131,7 @@ func (s *Session) Set(key string, value interface{}) (err error) {
 func (s *Session) Delete(key string) {
 	sessionKey := fmt.Sprintf("tission_%s_%s", s.sessionId, key)
 	Del(sessionKey)
-	s.updateSession()
+	_ = s.updateSession()
 }
 
 func (s *Session) SessionId() (sid string) {
