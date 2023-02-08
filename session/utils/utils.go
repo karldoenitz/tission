@@ -1,4 +1,4 @@
-package redis
+package utils
 
 import (
 	"crypto/md5"
@@ -44,7 +44,7 @@ func toMd5(original string) string {
 	return fmt.Sprintf("%X", has)
 }
 
-func getSessionId() string {
+func GetSessionId() string {
 	ip := getLocalIP()
 	goId := getGoroutineId()
 	timeStamp := time.Now().Local().Unix()

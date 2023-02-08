@@ -1,93 +1,63 @@
-package redis
+package cache
 
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/gomodule/redigo/redis"
 	"github.com/karldoenitz/Tigo/TigoWeb"
 	"github.com/karldoenitz/tission/session/utils"
+	"github.com/patrickmn/go-cache"
 	"reflect"
 	"time"
 )
 
-var si SessionInterface
-
 var (
-	IP      string
-	Port    string
-	MaxIdle int
-	Timeout int
-	Pwd     string
-	Auth    string
-	DbNo    int
+	si SessionInterface
 )
 
 type SessionInterface struct {
-	IP      string
-	Port    string
-	MaxIdle int
-	Timeout int
-	Pwd     string
-	Auth    string
-	DbNo    int
-	Expire  int64
+	Expire time.Duration
 }
 
-func (sip *SessionInterface) initRedisPool() {
-	addr := fmt.Sprintf("%s:%s", IP, Port)
-	redisPool = produceRedisPool(addr, MaxIdle, Timeout, Auth, DbNo, Pwd)
-}
-
-func (sip *SessionInterface) GetRedisPool() *redis.Pool {
-	if redisPool != nil {
-		return redisPool
-	}
-	sip.initRedisPool()
-	return redisPool
+func (sip *SessionInterface) initCache() {
+	cacheManager = produceCacheManager(sip.Expire, sip.Expire)
 }
 
 func (sip *SessionInterface) NewSessionManager() TigoWeb.SessionManager {
-	IP = sip.IP
-	Port = sip.Port
-	MaxIdle = sip.MaxIdle
-	Timeout = sip.Timeout
-	Pwd = sip.Pwd
-	Auth = sip.Auth
-	DbNo = sip.DbNo
-	sip.initRedisPool()
+	// 这里初始化缓存
 	return &SessionManager{expire: sip.Expire}
 }
 
+func (sip *SessionInterface) GetCache() *cache.Cache {
+	if cacheManager != nil {
+		return cacheManager
+	}
+	sip.initCache()
+	return cacheManager
+}
+
 type SessionManager struct {
-	expire int64
+	expire time.Duration
 }
 
 func (sm *SessionManager) GenerateSession(expire int) TigoWeb.Session {
 	session := Session{}
 	session.sessionId = utils.GetSessionId()
-	session.value = make(map[string]interface{})
-	if expire == 0 {
-		sm.expire = int64(expire) * int64(time.Second)
-	}
+	sm.expire = time.Duration(expire)
 	session.expire = sm.expire
-	Set(session.sessionId, session.value, time.Duration(sm.expire))
+	Set(session.sessionId, "", sm.expire)
 	return &session
 }
 
 func (sm *SessionManager) GetSessionBySid(sid string) TigoWeb.Session {
 	session := Session{}
-	value, isFound := Get(sid)
+	// 从缓存中获取
+	_, isFound := Get(sid)
 	if !isFound {
 		return &session
 	}
 	session.sessionId = sid
-	session.value = make(map[string]interface{})
 	session.expire = sm.expire
-	if session.expire == 0 {
-		session.expire = int64(3600) * int64(time.Second)
-	}
-	json.Unmarshal(value, &(session.value))
 	return &session
 }
 
@@ -96,18 +66,13 @@ func (sm *SessionManager) DeleteSession(sid string) {
 }
 
 type Session struct {
-	value     map[string]interface{}
 	sessionId string
-	expire    int64
+	expire    time.Duration
 }
 
 func (s *Session) updateSession() (err error) {
-	data, err := json.Marshal(s.value)
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
-	if err, _ := Set(s.sessionId, data, time.Duration(s.expire)); err != nil {
+	// 向缓存中设置
+	if err := Set(s.sessionId, "", s.expire); err != nil {
 		fmt.Println(err.Error())
 	}
 	return
@@ -121,7 +86,8 @@ func (s *Session) Get(key string, value interface{}) (err error) {
 			return
 		}
 	}()
-	sv, isExisted := s.value[key]
+	sessionKey := fmt.Sprintf("tission_%s_%s", s.sessionId, key)
+	sv, isExisted := Get(sessionKey)
 	if !isExisted {
 		return errors.New(fmt.Sprintf("session value of key(%s) is nil", key))
 	}
@@ -155,14 +121,16 @@ func (s *Session) Get(key string, value interface{}) (err error) {
 }
 
 func (s *Session) Set(key string, value interface{}) (err error) {
-	s.value[key] = value
+	sessionKey := fmt.Sprintf("tission_%s_%s", s.sessionId, key)
+	if err := Set(sessionKey, value, s.expire); err != nil {
+		fmt.Printf("set %s %v to session failed => %s", key, value, err.Error())
+	}
 	return s.updateSession()
 }
 
 func (s *Session) Delete(key string) {
-	if _, isExisted := s.value[key]; isExisted {
-		delete(s.value, key)
-	}
+	sessionKey := fmt.Sprintf("tission_%s_%s", s.sessionId, key)
+	Del(sessionKey)
 	s.updateSession()
 }
 
