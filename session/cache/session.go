@@ -50,7 +50,7 @@ func (sm *SessionManager) GenerateSession(expire int) TigoWeb.Session {
 }
 
 func (sm *SessionManager) GetSessionBySid(sid string) TigoWeb.Session {
-	session := Session{}
+	session := Session{sessionId: sid}
 	// 从缓存中获取
 	_, isFound := Get(sid)
 	if !isFound {
@@ -92,7 +92,7 @@ func (s *Session) Get(key string, value interface{}) (err error) {
 		return errors.New(fmt.Sprintf("session value of key(%s) is nil", key))
 	}
 	valPtr := reflect.ValueOf(value).Elem()
-	switch valPtr.Kind() {
+	switch valPtr.Type().Kind() {
 	case reflect.String:
 		v := sv.(string)
 		valPtr.SetString(v)
@@ -100,11 +100,11 @@ func (s *Session) Get(key string, value interface{}) (err error) {
 		v := sv.(bool)
 		valPtr.SetBool(v)
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-		v := sv.(float64)
-		valPtr.SetUint(uint64(v))
+		v := sv.(uint64)
+		valPtr.SetUint(v)
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		v := sv.(float64)
-		valPtr.SetInt(int64(v))
+		v := sv.(int64)
+		valPtr.SetInt(v)
 	case reflect.Float32, reflect.Float64:
 		v := sv.(float64)
 		valPtr.SetFloat(v)
